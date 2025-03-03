@@ -10,3 +10,4 @@ urllib3==2.3
 gunicorn==23.0.0
 
 uvicorn==0.34.0
+django-storages[google]
