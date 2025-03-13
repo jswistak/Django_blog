@@ -32,7 +32,7 @@ resource "google_sql_database" "django_db" {
 resource "google_sql_user" "django_user" {
   name     = "django_user"
   instance = google_sql_database_instance.default.name
-  password = random_password.database_password
+  password = random_password.database_password.result
 }
 
 ##############################
@@ -63,7 +63,7 @@ resource "google_cloud_run_v2_service" "service" {
     timeout = "120s"
 
     containers {
-      image = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/djangoapp/app:latest"
+      image = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/containers-django/djangoapp:latest"
       ports {
         container_port = 8000
       }
@@ -157,13 +157,13 @@ resource "google_cloud_run_service_iam_binding" "django_public" {
 
 
 resource "google_storage_bucket" "static_files" {
-  name          = "django-static"
+  name          = "static-dsabmhrg"
   location      = var.gcp_region
   force_destroy = false
 }
 
 resource "google_storage_bucket" "media_files" {
-  name          = "django-media"
+  name          = "media-dsabmhrg"
   location      = var.gcp_region
   force_destroy = false
 }
@@ -175,22 +175,13 @@ resource "google_storage_bucket" "media_files" {
 
 resource "google_artifact_registry_repository" "django_containers" {
   location               = var.gcp_region
-  repository_id          = "containers_django"
+  repository_id          = "containers-django"
   description            = "Django app containers"
   format                 = "DOCKER"
   cleanup_policy_dry_run = false
 
   docker_config {
     immutable_tags = false
-  }
-  cleanup_policies {
-    id     = "delete-old"
-    action = "DELETE"
-    condition {
-      tag_state    = "TAGGED"
-      tag_prefixes = ["*"]
-      older_than   = "30d"
-    }
   }
 }
 # ###########################################
@@ -202,6 +193,7 @@ resource "google_cloud_run_v2_job" "run_django_commands" {
   provider = google-beta
   name     = "run-django-commands"
   location = var.gcp_region
+  project  = var.gcp_project
   depends_on = [
     google_secret_manager_secret.db_password,
     google_cloud_run_v2_service.service,
@@ -222,7 +214,7 @@ resource "google_cloud_run_v2_job" "run_django_commands" {
       service_account = google_service_account.cloud_run_sa.email
 
       containers {
-        image   = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/djangoapp/app:latest"
+        image   = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/containers-django/djangoapp:latest"
         command = ["python", "manage.py"]
 
         ports {
