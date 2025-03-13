@@ -42,7 +42,11 @@ resource "google_service_account" "cloud_run_sa" {
   account_id   = "cloud-run-django"
   display_name = "Cloud Run Service Account for Django"
 }
-
+resource "google_project_iam_member" "storage_object_viewer" {
+  project = var.gcp_project
+  role    = "roles/storage.objectUser"
+  member  = "serviceAccount:${google_service_account.cloud_run_sa.email}"
+}
 resource "google_project_iam_member" "cloudsql_client" {
   project = var.gcp_project
   role    = "roles/cloudsql.client"
@@ -168,6 +172,10 @@ resource "google_storage_bucket" "media_files" {
   force_destroy = false
 }
 
+# resource "google_storage_bucket" "job_output" {
+#   name     = "job-output-dsabmhrg"
+#   location = var.gcp_region
+# }
 
 # ###########################################
 # Artifact Registry
@@ -196,7 +204,8 @@ resource "google_cloud_run_v2_job" "run_django_commands" {
   project  = var.gcp_project
   depends_on = [
     google_secret_manager_secret.db_password,
-    google_cloud_run_v2_service.service,
+    google_storage_bucket.job_output,
+    google_sql_database.django_db,
   ]
   lifecycle {
     ignore_changes = [
@@ -213,6 +222,12 @@ resource "google_cloud_run_v2_job" "run_django_commands" {
     template {
       service_account = google_service_account.cloud_run_sa.email
 
+      volumes {
+        name = "cloudsql"
+        cloud_sql_instance {
+          instances = [google_sql_database_instance.default.connection_name]
+        }
+      }
       containers {
         image   = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/containers-django/djangoapp:latest"
         command = ["python", "manage.py"]
@@ -238,18 +253,11 @@ resource "google_cloud_run_v2_job" "run_django_commands" {
             }
           }
         }
-
-
-
         resources {
           limits = {
             cpu    = "2"
             memory = "4Gi"
           }
-        }
-        volume_mounts {
-          mount_path = "/job_output"
-          name       = "job_volume"
         }
       }
     }
