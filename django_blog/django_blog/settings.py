@@ -24,11 +24,12 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = ")fjfi@hi5kmn1_e+875mznf1ka&yvc7bxzkthsnao&%))6*+it"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = [
     "run.app",
     "*.run.app",
+    "django-service-455573960640.europe-west1.run.app",
 ]  # This is a wildcard for all cloud run services it is not secure
 
 
@@ -138,10 +139,10 @@ USE_TZ = True
 
 STORAGES = {
     "default": {
-        "BACKEND": "storage.gcloud.GoogleCloudMediaFileStorage",
+        "BACKEND": "django_blog.storage.gcloud.GoogleCloudMediaFileStorage",
     },
     "staticfiles": {
-        "BACKEND": "storage.gcloud.GoogleCloudStaticFileStorage",
+        "BACKEND": "django_blog.storage.gcloud.GoogleCloudStaticFileStorage",
     },
 }
 
@@ -171,3 +172,42 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.environ.get("EMAIL_USER")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_PASS")
+
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,  # keep default loggers
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+            "level": "DEBUG",
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "DEBUG",
+    },
+}
