@@ -8,7 +8,7 @@ pytz==2019.3
 requests==2.32
 urllib3==2.3
 gunicorn==23.0.0
-
+mysqlclient==2.2.7
 uvicorn==0.34.0
 django-storages[google]
 google-auth

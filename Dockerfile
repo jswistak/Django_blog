@@ -1,5 +1,13 @@
 FROM python:3.11-slim
 
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends pkg-config default-libmysqlclient-dev
+
+# Install additional system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gcc libpq-dev pkg-config default-libmysqlclient-dev && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install system dependencies
 RUN apt-get update \
