@@ -52,10 +52,19 @@ resource "google_project_iam_member" "cloudsql_client" {
   role    = "roles/cloudsql.client"
   member  = "serviceAccount:${google_service_account.cloud_run_sa.email}"
 }
+resource "google_project_iam_member" "secret_manager_access" {
+  project = var.gcp_project
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${google_service_account.cloud_run_sa.email}"
+}
 resource "google_cloud_run_v2_service" "service" {
   name     = "django-service"
   location = var.gcp_region
-
+  depends_on = [
+    google_project_iam_member.storage_object_viewer,
+    google_project_iam_member.cloudsql_client,
+    google_project_iam_member.secret_manager_access
+  ]
 
   template {
     service_account = google_service_account.cloud_run_sa.email
@@ -104,42 +113,8 @@ resource "google_cloud_run_v2_service" "service" {
         instances = [google_sql_database_instance.default.connection_name]
       }
     }
-    # vpc_access {
-    #   connector = google_vpc_access_connector.vpc_connector.id
-    # }
   }
 }
-
-# ###########################################
-# # Redis for the django app
-# ###########################################
-
-# resource "google_redis_instance" "redis" {
-#   name               = "redis-django"
-#   tier               = "BASIC"
-#   memory_size_gb     = 1
-#   region             = var.gcp_region
-#   authorized_network = google_compute_network.redis.id
-
-#   redis_configs = {
-#     maxmemory-policy = "allkeys-lru"
-#   }
-# }
-
-# ###########################################
-# Networking
-# ###########################################
-
-# resource "google_compute_network" "redis" {
-#   name = "redis-vpc"
-# }
-
-# resource "google_vpc_access_connector" "vpc_connector" {
-#   name          = "vpc-django-connector"
-#   region        = var.gcp_region
-#   network       = google_compute_network.redis.name
-#   ip_cidr_range = "10.8.0.0/28"
-# }
 
 # ###########################################
 # Cloud run public 
@@ -172,11 +147,6 @@ resource "google_storage_bucket" "media_files" {
   force_destroy = false
 }
 
-# resource "google_storage_bucket" "job_output" {
-#   name     = "job-output-dsabmhrg"
-#   location = var.gcp_region
-# }
-
 # ###########################################
 # Artifact Registry
 # ###########################################
@@ -204,9 +174,12 @@ resource "google_cloud_run_v2_job" "run_django_commands" {
   project  = var.gcp_project
   depends_on = [
     google_secret_manager_secret.db_password,
-    google_storage_bucket.job_output,
+    google_project_iam_member.storage_object_viewer,
+    google_project_iam_member.cloudsql_client,
+    google_project_iam_member.secret_manager_access,
     google_sql_database.django_db,
   ]
+
   lifecycle {
     ignore_changes = [
       client,
