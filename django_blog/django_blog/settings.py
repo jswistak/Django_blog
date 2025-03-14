@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 
 import os
 from google.auth import default
+from urllib.parse import urlparse
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -26,11 +27,20 @@ SECRET_KEY = ")fjfi@hi5kmn1_e+875mznf1ka&yvc7bxzkthsnao&%))6*+it"
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
+
 ALLOWED_HOSTS = [
-    "run.app",
-    "*.run.app",
     "django-service-455573960640.europe-west1.run.app",
 ]  # This is a wildcard for all cloud run services it is not secure
+CSRF_TRUSTED_ORIGINS = [
+    "https://django-service-455573960640.europe-west1.run.app",
+]
+CLOUDRUN_SERVICE_URLS = os.getenv("CLOUDRUN_SERVICE_URLS", default=None)
+
+if CLOUDRUN_SERVICE_URLS:
+    CSRF_TRUSTED_ORIGINS = CLOUDRUN_SERVICE_URLS.split(",")
+    ALLOWED_HOSTS = [urlparse(url).netloc for url in CSRF_TRUSTED_ORIGINS]
+    SECURE_SSL_REDIRECT = True
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 
 # Application definition
