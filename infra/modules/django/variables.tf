@@ -14,7 +14,7 @@ locals {
   service_env_variables = [
     { name = "DB_NAME", type = "text", value = google_sql_database.django_db.name },
     { name = "DB_USER", type = "text", value = google_sql_user.django_user.name },
-    { name = "DB_PASSWORD", type = "text", value = google_secret_manager_secret_version.db_password.secret_data },
+    { name = "DB_PASSWORD", type = "secret", secret_ref = google_secret_manager_secret.db_password.name },
     { name = "DB_HOST", type = "text", value = "/cloudsql/${var.gcp_project}:${var.gcp_region}:${google_sql_database_instance.default.name}" },
 
     # static and media buckets
